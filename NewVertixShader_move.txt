@@ -1,0 +1,68 @@
+//一个全局参数
+
+cbuffer animatedMeshBuffer
+{
+	float4x4 W;
+	float4x4 VP;
+	float4x4 bones[256];
+};
+
+//输入结构
+
+struct VS_INPUT
+{
+	float4 Pos : POS;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float2 TexCoords : TEXCOORD;
+	uint4 BoneIDs : BONEIDS;
+	float4 BoneWeights : BONEWEIGHTS;
+};
+
+//输出结构
+
+struct PS_INPUT
+{
+	float4 Pos : SV_POSITION;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float2 TexCoords : TEXCOORD;
+};
+
+PS_INPUT VS(VS_INPUT input)
+{
+	PS_INPUT output;
+
+        //计算顶点受其骨骼影响的世界变换矩阵
+
+	float4x4 transform = bones[input.BoneIDs[0]] * input.BoneWeights[0];
+	transform += bones[input.BoneIDs[1]] * input.BoneWeights[1];
+	transform += bones[input.BoneIDs[2]] * input.BoneWeights[2];
+	transform += bones[input.BoneIDs[3]] * input.BoneWeights[3];
+
+        //由三个矩阵（骨骼变换，模型世界矩阵，投影视图变换）变换顶点位置
+
+	output.Pos = mul(input.Pos, transform);
+	output.Pos = mul(output.Pos, W);
+	output.Pos = mul(output.Pos, VP);
+
+        //对顶点的法线也进行对应的变换（没有视图变换）
+
+	output.Normal = mul(input.Normal, (float3x3)transform);
+	output.Normal = mul(output.Normal, (float3x3)W);
+	output.Normal = normalize(output.Normal);
+
+        //对切线变换，类似法线
+
+	output.Tangent = mul(input.Tangent, (float3x3)transform);
+	output.Tangent = mul(output.Tangent, (float3x3)W);
+	output.Tangent = normalize(output.Tangent);
+
+        //传递纹理坐标
+
+	output.TexCoords = input.TexCoords;
+
+        //返回数据
+
+	return output;
+}

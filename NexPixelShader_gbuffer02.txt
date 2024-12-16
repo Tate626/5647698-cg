@@ -1,0 +1,42 @@
+Texture2D<float4> GBufferDiffuse : register(t0);
+Texture2D<float4> GBufferNormal : register(t1);
+Texture2D<float4> GBufferPosition : register(t2);
+SamplerState samplerLinear : register(s0);
+
+cbuffer LightingBuffer
+{
+    float4 LightDir;         
+    float4 ViewPos;          
+    float4 LightColor;       
+};
+
+struct PS_INPUT
+{
+    float4 Pos : SV_POSITION;
+};
+
+float4 PS(PS_INPUT input) : SV_Target
+{
+    float2 uv = input.Pos.xy / input.Pos.w;
+   uv = uv * 0.5f + 0.5f;
+
+    float4 diffuse = GBufferDiffuse.Sample(samplerLinear, uv);
+    float3 normal = normalize(GBufferNormal.Sample(samplerLinear, uv).xyz);
+    float3 position = GBufferPosition.Sample(samplerLinear, uv).xyz;
+
+    float3 lightDir = normalize(LightDir.xyz);
+    float3 viewDir = normalize(ViewPos.xyz - position);
+
+    float diff = max(dot(normal, lightDir), 0.0);
+    float3 diffuseLight = diff * LightColor.xyz;
+
+    float3 reflectDir = reflect(-lightDir, normal);
+   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0); 
+    float3 specular = spec * LightColor.xyz;
+
+   float3 ambient = 1.0 * LightColor.xyz;
+
+   float3 finalColor = (ambient + diffuseLight + specular) * diffuse.xyz;
+
+    return float4(finalColor, 1.0);
+}

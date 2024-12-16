@@ -1,0 +1,13 @@
+struct VS_INPUT {
+    float3 Pos : POSITION;
+};
+
+struct VS_OUTPUT {
+    float4 Pos : SV_POSITION; 
+};
+
+VS_OUTPUT VS(VS_INPUT input) {
+    VS_OUTPUT output;
+    output.Pos = float4(input.Pos, 1.0); 
+    return output;
+}
